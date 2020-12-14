@@ -1,0 +1,8 @@
+bin/
+.idea/
+.vscode/
+.DS_Store
+lang.zip
+pdf-project/venv
+pdf-project/.DS_Store
+pdf-project/.idea/
