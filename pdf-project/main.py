@@ -1,8 +1,11 @@
 # -*- coding:utf-8 -*-
 import csv
-
 import fitz
 import os.path, re
+from tkintertable import TableCanvas, TableModel
+from tkinter import *
+
+import windnd as windnd
 from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
 from pdfminer.converter import PDFPageAggregator
 from pdfminer.layout import LAParams, LTTextBoxHorizontal
@@ -13,10 +16,10 @@ from PIL import Image
 from pyzbar import pyzbar
 import cmd
 
-head = ["文件名", "发票代码", "发票号码", "开票日期", "校验码", "服务名称", "税额", "金额", "合计"]
+head = ["原文件名", "新文件名", "发票代码", "发票号码", "开票日期", "校验码", "服务名称", "税额", "金额", "合计"]
 
 
-class FapiaoShell(cmd.Cmd):
+class Fapiao(cmd.Cmd):
     """ 发票 """
     intro = '欢迎使用发票提取工具，输入?(help)获取帮助消息和命令列表，CTRL+C退出程序。\n'
     prompt = '\n输入命令: '
@@ -54,6 +57,7 @@ class FapiaoShell(cmd.Cmd):
         writer.writerow(head)
         if not os.path.exists("./pic"):
             os.makedirs("./pic")
+        infos = []
         for fpth in pdfs:
             tmp_info = []
             # 获取当前文件名
@@ -65,15 +69,19 @@ class FapiaoShell(cmd.Cmd):
             self._pdf2pic(fpth, pic_name)
             # 获取二维码信息得到的信息，分别为"发票代码", "发票号码", "开票日期", "校验码"
             pic_info = self._get_ewm(pic_name)
-            # 通过解析pdf，正则表达解析的方式获取"服务名称", 税额","金额", "合计"
+            # 通过解析pdf，正则表达解析的方式获取"服务名称", "税额","金额", "合计"
             money_info = self._extrace_from_words(fpth)
             # 将信息按照head一次填入tmp_info中
             tmp_info.append(file_name)
+            # 类别_日期_发票代码_发票号码_发票金额
+            new_file_name = "{}_{}_{}_{}_{}.pdf".format("服务名", pic_info[2], pic_info[0], pic_info[1], money_info[3])
+            tmp_info.append(new_file_name)
             tmp_info.extend(pic_info)
             tmp_info.extend(money_info)
-
-            writer.writerow(tmp_info)
+            infos.append(tmp_info)
             # 将每张图片结果都写入文件中
+        new_infos = self._table_show(infos)
+        writer.writerows(new_infos)
         fp.close()
 
     def _extrace_from_words(self, pdf_path):
@@ -186,8 +194,34 @@ class FapiaoShell(cmd.Cmd):
         info.append(decode_info[6])
         return info
 
+    def _table_show(self, infos):
+        tk = Tk()
+        tk.geometry('800x500+200+100')
+        tk.title('Test')
+        f = Frame(tk)
+        f.pack(fill=BOTH, expand=1)
+        data = {}
+        for i, val in enumerate(infos):
+            tmp_data = {}
+            for hi, hv in enumerate(head):
+                tmp_data[hv] = val[hi]
+            data[i] = tmp_data
+        table = TableCanvas(f, data=data)
+        table.show()
+        tk.mainloop()
+        c = table.model.getRowCount()
+        new_infos = []
+        for i in range(0, c):
+            tmp = table.model.getRecordAtRow(i)
+            tmp_info = []
+            for hi, hv in enumerate(head):
+                tmp_info.append(tmp[hv])
+            new_infos.append(tmp_info)
+        return new_infos
+
+
 if __name__ == '__main__':
     try:
-        FapiaoShell().cmdloop()
+        Fapiao().cmdloop()
     except KeyboardInterrupt:
         print('\n\n再见！')
