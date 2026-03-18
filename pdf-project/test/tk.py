@@ -1,8 +1,6 @@
 import tkinter, os
 from tkinter.messagebox import askokcancel, showinfo
 # import TestDire
-import windnd
-
 
 def drag_files(urls):
     print(b'\n'.join(urls).decode())
